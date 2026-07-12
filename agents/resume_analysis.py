@@ -1,9 +1,6 @@
-# AGENT 1: Analyzes resume and give feedback
-import json
-from google.genai import types 
-from utils import client
+# AGENT 2: Analyzes resume and give feedback
+from utils.gemini import call_gemini
 
-# Prompt
 PROMPT = """
 You are an experienced technical recruiter and resume reviewer.
 
@@ -79,12 +76,8 @@ Examples:
 - excessive whitespace
 
 If formatting looks good, return an empty array.
-
-6. ats_friendliness
-Briefly evaluate how likely the resume is to perform well in an Applicant Tracking System.
-Mention only the major factors affecting ATS compatibility.
 """
-# Json Schema
+
 RESPONSE_SCHEMA = {
     "type": "object",
     "properties": {
@@ -108,41 +101,15 @@ RESPONSE_SCHEMA = {
         "formatting_issues": {
             "type": "array",
             "items": { "type": "string"}
-        },
-        "ats_friendliness": {
-            "type": "object",
-            "properties": {
-                "rating": {
-                    "type": "integer",
-                    "minimum": 1,
-                    "maximum": 10
-                },
-                "summary":{
-                    "type": "string"
-                }
-            }
         }
     },
     "required": [
         "strengths",
         "weaknesses",
-        "experience_level",
-        "ats_friendliness"
+        "experience_level"
     ]
 }
 
 # Return generated response with analysis
-def resume_analysis_agent(pdf_content):
-
-    response = client.models.generate_content(
-        model="gemini-3.1-flash-lite",
-        contents=pdf_content,
-        config=types.GenerateContentConfig(
-            system_instruction=PROMPT,
-            response_mime_type="application/json",
-            response_json_schema=RESPONSE_SCHEMA,
-            temperature=0.3
-        )
-    )
-
-    return json.loads(response.text)
+def resume_analysis_agent(context):
+    return call_gemini(context, PROMPT, RESPONSE_SCHEMA)
