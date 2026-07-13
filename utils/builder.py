@@ -1,4 +1,4 @@
-def build_context(agent, context, retrieved_info = ""):
+def build_context(agent, context, info = ""):
     match agent:
         case "analysis":
             return {
@@ -9,16 +9,33 @@ def build_context(agent, context, retrieved_info = ""):
         case "skill":
             return {
                 "candidate": context["parsed"]["candidate_profile"],
-                "analysis": context["analysis"],
-                "resume_text": context["input"]["resume_text"]
+                "resume_text": context["input"]["resume_text"],
+                "analysis": context["analysis"]
             }
         case "ats":
             return {
                 "candidate": context["parsed"]["candidate_profile"],
-                "analysis": context["analysis"],
+                "resume_analysis": context["analysis"],
                 "skills": context["skills"],
                 "metadata": context["input"]["metadata"],
-                "retrieved_context": retrieved_info
+                "retrieved_context": info
+            }
+        case "project_planning":
+            return {
+                "candidate": context["parsed"]["candidate_profile"],
+                "experience_level": context["analysis"]["experience_level"],
+                "current_skills": context["skills"]["current_skills"],
+                "target_skills": context["skills"]["recommended_future_skills"],
+                "existing_projects": context["parsed"]["identified_projects"]
+            }
+        case "project_choose":
+            return {
+                "candidate": context["parsed"]["candidate_profile"],
+                "experience_level": context["analysis"]["experience_level"],
+                "current_skills": context["skills"]["current_skills"],
+                "target_skills": context["skills"]["recommended_future_skills"],
+                "existing_projects": context["parsed"]["identified_projects"],
+                "search_results": info
             }
         
 def build_query(agent, context):

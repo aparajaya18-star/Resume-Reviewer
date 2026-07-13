@@ -1,4 +1,4 @@
-from utils.gemini import call_gemini
+from utils.agent_call import call_gemini
 
 # AGENT 1: Extract basic Information from file (Common Use)
 

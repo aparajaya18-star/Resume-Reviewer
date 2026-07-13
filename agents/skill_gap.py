@@ -1,4 +1,4 @@
-from utils.gemini import call_gemini 
+from utils.agent_call import call_gemini 
 
 # AGENT 3: Identify Gap in skills and suggest improvement areas
 

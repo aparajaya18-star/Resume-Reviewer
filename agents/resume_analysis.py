@@ -1,5 +1,5 @@
 # AGENT 2: Analyzes resume and give feedback
-from utils.gemini import call_gemini
+from utils.agent_call import call_gemini
 
 PROMPT = """
 You are an experienced technical recruiter and resume reviewer.

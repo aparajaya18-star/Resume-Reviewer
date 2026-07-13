@@ -1,7 +1,9 @@
 import streamlit as st
+from google.genai.errors import ClientError
 
 from utils.pdf import load_pdf
 from orchestrator import run_pipeline
+from agents.project_recommendation import project_recommendation_agent
 
 # ----- Sreamlit app -----
 
@@ -58,108 +60,159 @@ if uploaded_file and submit_button:
     }
 
     # Call orchestrator
-    context = run_pipeline(text, file_metadata, progress=update_progress)
+    st.session_state.pop("context", None)
+    st.session_state.context = run_pipeline(text, file_metadata, progress=update_progress)
 
     update_progress("Analysis Complete!", "complete")
 
-   # ---- Overall Resume Score -----
+   
+if "context" in st.session_state:
+    context = st.session_state.context
     st.divider()
     with st.container(border=True):
-        st.header("Overall Resume Score")  
+        # ---- Overall Resume Score -----
+        with st.container(border=True):
+            st.header("Overall Resume Score")  
 
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            ats_score = context['ats']['ats_score']
-            color = "green" if ats_score >= 5 else "red"
-            st.metric(label="ATS",
-                      value=f":{color}[{ats_score} / 10]",
-                      border=True,
-                    )
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                ats_score = context['ats']['ats_score']
+                color = "green" if ats_score >= 5 else "red"
+                st.metric(label="ATS",
+                        value=f":{color}[{ats_score} / 10]",
+                        border=True,
+                        )
 
-        with col2:
-            exp_score = context["analysis"]['experience_level']
-            color = "green" if exp_score >= 5 else "red"
-            st.metric(label="Experience",
-                      value=f":{color}[{exp_score} / 10]",
-                      border=True,
-                    )
+            with col2:
+                exp_score = context["analysis"]['experience_level']
+                color = "green" if exp_score >= 5 else "red"
+                st.metric(label="Experience",
+                        value=f":{color}[{exp_score} / 10]",
+                        border=True,
+                        )
 
-        with col3:
-            skill_score = context["skills"]["skill_score"]
-            color = "green" if skill_score >= 5 else "red"
-            st.metric(label="Skills",
-                      value=f":{color}[{skill_score} / 10]",
-                      border=True,
-                    )
+            with col3:
+                skill_score = context["skills"]["skill_score"]
+                color = "green" if skill_score >= 5 else "red"
+                st.metric(label="Skills",
+                        value=f":{color}[{skill_score} / 10]",
+                        border=True,
+                        )
 
-    # ---- Resume Analysis -----
-    with st.container(border=True):
-        st.header("Overview")
-        col1, col2 = st.columns(2)
-        with col1:
-            st.success("Strengths")
-            for s in context["analysis"]["strengths"]:
-                st.write(f"✓ {s}")
+        # ---- Resume Analysis -----
+        with st.container(border=True):
+            st.header("Overview")
+            col1, col2 = st.columns(2)
+            with col1:
+                st.success("Strengths")
+                for s in context["analysis"]["strengths"]:
+                    st.write(f"✓ {s}")
 
-        with col2:
-            st.warning("Weaknesses")
-            for w in context["analysis"]["weaknesses"]:
-                st.write(f"⚠ {w}")
+            with col2:
+                st.warning("Weaknesses")
+                for w in context["analysis"]["weaknesses"]:
+                    st.write(f"⚠ {w}")
 
-        if context["analysis"].get("missing_sections"):
-            st.subheader("Missing Sections:")
-            for m in context["analysis"]["missing_sections"]:
-                st.write(f"• {m}")
+            if context["analysis"].get("missing_sections"):
+                st.subheader("Missing Sections:")
+                for m in context["analysis"]["missing_sections"]:
+                    st.write(f"• {m}")
 
-        if context["analysis"].get("formatting_issues"):
-            st.subheader("Formatting Issues:")
-            for i in context["analysis"]["formatting_issues"]:
+            if context["analysis"].get("formatting_issues"):
+                st.subheader("Formatting Issues:")
+                for i in context["analysis"]["formatting_issues"]:
+                    st.write(f"• {i}")
+
+        # ---- Skill Gap -----
+        with st.container(border=True):
+            st.header("Skills")
+
+            col1, col2 = st.columns(2)
+            with col1:
+                st.success("Current Skills")
+                for s in context["skills"]["current_skills"]:
+                    st.write(f"• {s}")
+
+            with col2:
+                st.warning("Missing Skills") # Maybe replace with "hidden talents" ie skills you have based on projects but not added since this overlaps with suggestions maybe with st.caption("+ Add to Resume")
+                for w in context["skills"]["missing_resume_skills"]:
+                    st.write(f"• {w}")
+
+            st.subheader("Suggested Learning")
+            st.caption("How to upskill ⬆")
+            for suggestion in context["skills"]["recommended_future_skills"]:
+                st.markdown(f"Skill: **{suggestion['skill']}**")
+                st.write(f"Reason: {suggestion['reason']}")
+                st.write(f"Priority: ",suggestion['priority'])
+
+        # ---- ATS Score + Analysis (RAG Agent) ----
+        with st.container(border=True):
+            st.header("ATS Analysis")
+
+            st.metric("Score:", f"{context['ats']['ats_score']} / 10")
+            st.write(context["ats"]["analysis"])
+
+            st.subheader("Issues: ")
+            for i in context["ats"]["issues"]:
                 st.write(f"• {i}")
 
-    # ---- Skill Gap -----
-    with st.container(border=True):
-        st.header("Skills")
+            st.subheader("Improvements: ")
+            for i in context["ats"]["improvements"]:
+                st.write(f"• {i}")
 
-        col1, col2 = st.columns(2)
-        with col1:
-            st.success("Current Skills")
-            for s in context["skills"]["current_skills"]:
-                st.write(f"• {s}")
-
-        with col2:
-            st.warning("Missing Skills") # Maybe replace with "hidden talents" ie skills you have based on projects but not added since this overlaps with suggestions maybe with st.caption("+ Add to Resume")
-            for w in context["skills"]["missing_resume_skills"]:
-                st.write(f"• {w}")
-
-        st.subheader("Suggested Learning")
-        st.caption("How to upskill ⬆")
-        for suggestion in context["skills"]["recommended_future_skills"]:
-            st.write("Skill: ", suggestion['skill'])
-            st.write(f"Reason: {suggestion['reason']}")
-            st.write(f"Priority: ",suggestion['priority'])
-
-    # ---- ATS Score + Analysis (RAG Agent) ----
-    with st.container(border=True):
-        st.header("ATS Analysis")
-
-        st.metric("Score:", f"{context['ats']['ats_score']} / 10")
-        st.write(context["ats"]["analysis"])
-
-        st.subheader("Issues: ")
-        for i in context["ats"]["issues"]:
-            st.write(f"• {i}")
-
-        st.subheader("Improvements: ")
-        for i in context["ats"]["improvements"]:
-            st.write(f"• {i}")
-
-        with st.expander("Retrieved ATS Knowledge"):
-            for doc in context["ats"]["retrieved_context"]:
-                st.markdown(f"**{doc['source']}**")
-                st.caption(doc["section"])
-                st.write(doc["content"])
+            with st.expander("Retrieved ATS Knowledge"):
+                for doc in context["ats"]["retrieved_context"]:
+                    st.markdown(f"**{doc['source']}**")
+                    st.caption(doc["section"])
+                    st.write(doc["content"])
 
     # ---- Suggest Projects (Agent + Function Calling: Google Search)
+    project_button = st.button(
+            "Recommend Portfolio Projects",
+            use_container_width=True
+        )
+    if project_button:
+        if not context.get("projects"):
+            with st.spinner("Searching for suitable projects..."):
+                try:
+                    context["projects"] = project_recommendation_agent(context)
+                except ClientError as e:
+                    context["projects"] = {
+                        "error": str(e)
+                    }
+
+            st.session_state.context = context
+
+    if st.session_state.context.get("projects"):
+        projects = st.session_state.context["projects"]
+        with st.container(border=True):
+            st.header("Project Recommendations")
+            if isinstance(projects, dict) and "error" in projects:
+                st.warning(projects["error"])
+            else:
+                for p in projects:
+                    with st.container(border=True):
+                        st.subheader(p["title"])
+                        col1, col2, col3 = st.columns(3)
+                        with col1:
+                            st.metric("Difficulty", p["difficulty"])
+                        with col2:
+                            st.metric("Time", p["time_estimate"])
+                        with col3:
+                            st.metric("Portfolio Impact", f"{p['portfolio_impact']} / 10")
+
+                        st.write(p["overview"])
+
+                        st.markdown("**Why this project?**")
+                        st.write(p["why_now"])
+
+                        st.markdown("**Skills**")
+                        for skill in p["skills"]:
+                            st.write(f"• {skill}")
+
+                        with st.expander("Resources"):
+                            for resource in p["resources"]:
+                                st.markdown(f"- [{resource['title']}]({resource['url']})")
 
     # ---- Resume Improvement (RAG Agent) ----
 

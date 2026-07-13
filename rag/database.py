@@ -5,7 +5,7 @@ from chromadb import Documents, EmbeddingFunction, Embeddings
 from pathlib import Path
 import hashlib
 
-from utils.gemini import client
+from utils.agent_call import gemini_client
 
 # Function add particular folder to db
 def index_folder(folder_path, collection_name):
@@ -60,7 +60,7 @@ def split_text(raw_documents):
 class GeminiEmbeddingFunction(EmbeddingFunction):
     def __call__(self, input: Documents) -> Embeddings:
         # Use the Gemini Embeddings API to generate embeddings for the input documents
-        result = client.models.embed_content(
+        result = gemini_client.models.embed_content(
             model="gemini-embedding-2",
             contents=input,
         )  

@@ -14,7 +14,8 @@ def run_pipeline(text, file_metadata, progress=None):
             "parsed": {},
             "analysis": {},
             "skills": {},
-            "ats": {}
+            "ats": {},
+            "projects": {}
         }
     
     # AGENT 1
@@ -40,5 +41,8 @@ def run_pipeline(text, file_metadata, progress=None):
     if progress:
         progress("Checking ATS compatibility...")
     context["ats"] = ats_rag_agent(context)
+
+    # AGENT 5
+    
 
     return context

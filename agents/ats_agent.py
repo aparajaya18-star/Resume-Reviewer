@@ -1,5 +1,5 @@
 from utils.builder import build_context, build_query
-from utils.gemini import call_gemini
+from utils.agent_call import call_gemini
 from rag.database import retrieve, get_db
 
 ats_database = get_db("ats")
