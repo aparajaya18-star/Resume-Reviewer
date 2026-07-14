@@ -13,20 +13,27 @@ st.set_page_config(
     page_title="Resume Reviewer",
     layout="wide"
 )
-#st.caption("") -> add later
+st.markdown(
+    "<div style='height:20px'></div>",
+    unsafe_allow_html=True
+)
 
 left, center, right = st.columns([1,16,1])
 
 with center:
-    #st.title("Resume Reviewer")
     st.markdown("<h1 style='text-align: center;'>Resume Reviewer</h1>", unsafe_allow_html=True)
+    st.markdown(
+        "<div style='height:3px'></div>",
+        unsafe_allow_html=True
+    )
     with st.container(border=True):
 
         st.subheader("📄 Upload Resume")
-
         st.caption(
             "Upload a PDF resume to receive AI-powered feedback."
         )
+
+        st.write("")
 
         uploaded_file = st.file_uploader(
             "",
@@ -69,7 +76,6 @@ if uploaded_file and submit_button:
    
 if "context" in st.session_state:
     context = st.session_state.context
-    st.divider()
     with st.container(border=True):
         # ---- Overall Resume Score -----
         with st.container(border=True):
