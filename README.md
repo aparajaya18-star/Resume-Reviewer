@@ -1,151 +1,112 @@
-# Resume Reviewer
+# AI Resume Analyzer
 
-An AI-powered resume review application built with Streamlit and Google's Gemini API.
+An AI-powered resume analysis application that uses **agentic workflows**, **Retrieval-Augmented Generation (RAG)**, **LLMs**, and **web search** to provide personalized resume feedback and portfolio recommendations.
 
-The application uses a multi-agent architecture to analyze resumes, identify strengths and weaknesses, evaluate ATS compatibility using Retrieval-Augmented Generation (RAG), and recommend skills for career growth.
+The application analyzes a resume PDF, evaluates its strengths and weaknesses, identifies skill gaps, reviews ATS compatibility using a dedicated knowledge base, and recommends portfolio projects tailored to the candidate's background.
+
+## Live Demo
+
+🌐 **Streamlit App:** https://resume-reviewer-18.streamlit.app/
 
 ---
 
 ## Features
 
-- Resume upload (PDF)
-- Multi-agent resume analysis
-- ATS compatibility evaluation using RAG
-- Skill gap analysis
-- Structured JSON outputs from every agent
-- Modular agent-based architecture
-- Streamlit web interface
+### Resume Parsing
+- Extracts structured information from uploaded resumes
+- Identifies:
+  - Candidate profile
+  - Education
+  - Work experience
+  - Skills
+  - Projects
+  - Certifications
+  - Achievements
+  - Professional links
 
----
+### Resume Analysis
+Provides recruiter-style feedback including:
+- Executive summary
+- Resume strengths
+- Resume weaknesses
+- Experience score
+- Missing resume sections
+- Formatting suggestions
 
-## Architecture
-
-```text
-                     PDF Resume
-                          │
-                          ▼
-                  PDF Text Extraction
-                          │
-                          ▼
-                  Orchestrator Pipeline
-                          │
-        ┌─────────────────┼──────────────────┐
-        ▼                 ▼                  ▼
- Information        Resume Analysis     Skill Gap
- Extraction             Agent             Agent
-        │                 │                  │
-        └──────────────┬──┴──────────────────┘
-                       ▼
-                  Shared Context
-                       │
-                       ▼
-             ATS RAG Retrieval Agent
-                       │
-        ┌──────────────┴──────────────┐
-        ▼                             ▼
-     ChromaDB                 ATS Knowledge Base
-       Vector DB                 (Markdown Docs)
-                       │
-                       ▼
-               Final Resume Report
-```
-
----
-
-## Project Structure
-
-```text
-Resume Reviewer/
-│
-├── app.py
-├── orchestrator.py
-├── requirements.txt
-├── README.md
-│
-├── agents/
-│   ├── information_extraction.py
-│   ├── resume_analysis.py
-│   ├── skill_gap.py
-│   └── ats_agent.py
-│
-├── rag/
-│   ├── database.py
-│   └── build_db.py
-│
-├── utils/
-│   ├── gemini.py
-│   ├── pdf.py
-│   ├── builder.py
-│   └── ...
-│
-├── knowledge_base/
-│   └── ats/
-│
-└── data/
-```
-
----
-
-## Agent Pipeline
-
-### 1. Information Extraction Agent
-
-Extracts structured candidate information including:
-
-- Career stage
-- Technical domain
-- Experience
-- Education
-- Skills
-- Projects
-- Achievements
-
----
-
-### 2. Resume Analysis Agent
-
-Provides an overall review by identifying:
-
-- Strengths
-- Weaknesses
-- Missing sections
-- Formatting issues
-- Experience level
-
----
-
-### 3. Skill Gap Agent
-
-Evaluates the candidate's technical profile and returns:
-
+### Skill Gap Analysis
+Evaluates the candidate's technical profile and provides:
 - Skill score
-- Current skills
-- Missing resume skills
-- Recommended future skills
+- Resume skill gaps
+- Personalized learning recommendations
+- Prioritized technologies to learn
+
+### ATS Analysis (RAG)
+Uses Retrieval-Augmented Generation with a curated ATS knowledge base to evaluate:
+- ATS compatibility score
+- Formatting issues
+- Missing sections
+- Keyword coverage
+- Actionable ATS improvements
+
+### Portfolio Project Recommendation
+Uses a multi-step agent workflow to:
+- Generate intelligent search queries
+- Search the web for high-quality project ideas
+- Filter duplicate and low-quality resources
+- Recommend portfolio projects tailored to the candidate
 
 ---
 
-### 4. ATS Review Agent (RAG)
+## Architecture Overview
 
-Uses Retrieval-Augmented Generation.
+```
+                Resume PDF
+                     │
+                     ▼
+             Information Extraction
+                     │
+                     ▼
+              Resume Analysis
+                     │
+        ┌────────────┴────────────┐
+        ▼                         ▼
+ Skill Gap Agent          ATS RAG Agent
+        └────────────┬────────────┘
+                     ▼
+             Project Planner
+                     ▼
+             Web Search (Tavily)
+                     ▼
+           Project Selection Agent
+                     ▼
+            Final Recommendations
+```
 
-Workflow:
-
-1. Build a search query from previous agent outputs.
-2. Retrieve relevant ATS guidance from ChromaDB.
-3. Combine retrieved context with resume analysis.
-4. Generate ATS score and improvement suggestions.
+A more detailed explanation is available in **ARCHITECTURE.md**.
 
 ---
 
-## Tech Stack
+## Technologies Used
 
+### AI
+- Google Gemini
+- Structured JSON Output
+- Prompt Engineering
+
+### RAG
+- ChromaDB
+- Gemini Embeddings
+- Semantic Retrieval
+
+### Backend
 - Python
 - Streamlit
-- Google Gemini API
-- ChromaDB
-- PyMuPDF
-- Markdown Knowledge Base
+
+### Search
+- Tavily Search API
+
+### Concurrency
+- ThreadPoolExecutor
 
 ---
 
@@ -155,27 +116,7 @@ Clone the repository
 
 ```bash
 git clone <repository-url>
-cd Resume-Reviewer
-```
-
-Create a virtual environment
-
-```bash
-python -m venv .venv
-```
-
-Activate it
-
-### Windows
-
-```bash
-.venv\Scripts\activate
-```
-
-### macOS / Linux
-
-```bash
-source .venv/bin/activate
+cd resume-analyzer
 ```
 
 Install dependencies
@@ -184,29 +125,14 @@ Install dependencies
 pip install -r requirements.txt
 ```
 
----
-
-## Environment Variables
-
-Create a `.env` file.
+Create a `.env` file
 
 ```text
-GEMINI_API_KEY=your_api_key_here
+GEMINI_API_KEY=your_key
+TAVILY_API_KEY=your_key
 ```
 
----
-
-## Build the Vector Database
-
-Before running the application, build the ATS knowledge base.
-
-```bash
-python build_db.py
-```
-
----
-
-## Run
+Run the application
 
 ```bash
 streamlit run app.py
@@ -214,18 +140,44 @@ streamlit run app.py
 
 ---
 
+## Project Structure
+
+```
+resume-analyzer/
+│
+├── agents/
+│   ├── information_extraction.py
+│   ├── resume_analysis.py
+│   ├── skill_gap.py
+│   ├── ats_agent.py
+│   └── project_recommendation.py
+│
+├── rag/
+│   ├── database.py
+│   └── ...
+│
+├── utils/
+│
+├── orchestrator.py
+├── app.py
+├── README.md
+└── ARCHITECTURE.md
+```
+
+---
+
 ## Future Improvements
 
-- Project recommendation agent
-- Resume rewrite agent
-- Job search integration
+- Resume rewriting agent
+- Job matching
 - Resume tailoring for job descriptions
-- Parallel execution of independent agents
-- Enhanced UI/UX
-- Deployment optimizations
+- Interview preparation agent
+- Cover letter generation
+- Additional knowledge bases
+- Support for DOCX resumes
 
 ---
 
 ## License
 
-This project was developed as part of a Generative AI and Agentic AI bootcamp and is intended for educational purposes.
+This project was developed as the final capstone project for the TDA Gen AI and Agentic AI Bootcamp.

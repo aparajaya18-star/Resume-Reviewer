@@ -1,5 +1,5 @@
 from utils.builder import build_context, build_query
-from utils.agent_call import call_gemini
+from utils.agent_call import call_gemini, TEMPERATURES
 from rag.database import retrieve, get_db
 
 ats_database = get_db("ats")
@@ -12,7 +12,38 @@ You are given:
 2. Previous analysis from other agents.
 3. Relevant ATS guidance retrieved from an ATS knowledge base.
 
-Your job is to evaluate the resume using BOTH the resume information and the retrieved ATS guidance.
+Your job is to evaluate the resume with respect to:
+
+1. Section completeness
+2. Contact information and professional links
+3. Formatting consistency
+4. ATS readability
+5. Keyword coverage
+6. File metadata (if relevant)
+
+Use the retrieved ATS guidance whenever it applies.
+
+Do not recommend visual design changes that reduce ATS compatibility.
+
+If the retrieved guidance does not mention a topic, rely only on the resume information.
+
+Score ATS compatibility based only on factors affecting automated parsing and discoverability.
+Do not reduce the score simply because the candidate has limited experience.
+
+1–2
+Poor ATS compatibility
+
+3–4
+Several major issues likely to hurt parsing
+
+5–6
+Generally readable but missing important ATS practices
+
+7–8
+Strong ATS compatibility with only minor improvements needed
+
+9–10
+Excellent ATS-ready resume
 
 Rules:
 - Base recommendations on the retrieved ATS guidance whenever applicable.
@@ -29,13 +60,18 @@ RESPONSE_SCHEMA = {
                     "minimum": 1,
                     "maximum": 10
                 },
-        "analysis":{"type": "string"},
+        "analysis":{
+            "type": "string",
+            "maxLength": 250
+        },
         "issues":{
             "type": "array",
+            "maxItems": 6,
             "items": {"type": "string"}
         },
         "improvements":{
             "type": "array",
+            "maxItems": 6,
             "items": {"type": "string"}
         }
     },
@@ -59,7 +95,7 @@ def ats_rag_agent(context):
         )
 
     resume_context = build_context("ats", context, retrieved_info)
-    response = call_gemini(resume_context, PROMPT, RESPONSE_SCHEMA)
+    response = call_gemini(resume_context, PROMPT, RESPONSE_SCHEMA, temp=TEMPERATURES['ats'])
 
     return {"retrieved_context": retrieved_info,
         **response}

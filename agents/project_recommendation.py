@@ -1,5 +1,8 @@
-from utils.agent_call import call_gemini, search_web
+from utils.agent_call import call_gemini, search_web, TEMPERATURES
 from utils.builder import build_context
+from utils.timer import timed_step
+import string
+from urllib.parse import urlparse
 
 PLANNING_PROMPT = """
 You are an AI career advisor helping generate search queries for project recommendations.
@@ -132,10 +135,18 @@ PROJECT_SELECTION_SCHEMA={
             "skills":
             {
                 "type": "array",
+                "minItems": 3,
+                "maxItems": 8,
                 "items": {"type": "string"},
             },
-            "why_now": {"type": "string"},
-            "overview": {"type": "string"},
+            "why_now": {
+                "type": "string",
+                "maxLength": 200
+            },
+            "overview": {
+                "type": "string",
+                "maxLength": 350
+            },
             "time_estimate": {
                 "type": "string",
                 "enum":[
@@ -152,6 +163,8 @@ PROJECT_SELECTION_SCHEMA={
             },
             "resources": {
                 "type": "array",
+                "minItems": 1,
+                "maxItems": 3,
                 "items": {
                     "type": "object",
                     "properties": {
@@ -166,17 +179,82 @@ PROJECT_SELECTION_SCHEMA={
     }
 }
 
+DOMAIN_SCORES = {
+    "github.com": 5,
+    "huggingface.co": 5,
+    "kaggle.com": 4,
+    "learn.microsoft.com": 4,
+    "docs.python.org": 4,
+    "developer.mozilla.org": 4,
+    "roadmap.sh": 3,
+}
+
+def normalize_url(url):
+    parsed = urlparse(url)
+    return f"{parsed.netloc}{parsed.path}".rstrip("/")
+
+def filter_search(raw_search):
+    seen_titles = set()
+    seen_urls = set()
+    unique_search = []
+    translator = str.maketrans('', '', string.punctuation)
+
+    for result in raw_search:
+        title = result.get("title", "").strip()
+        content = result.get("content", "").strip()
+        url = result.get("url", "").strip()
+        normalized_url = normalize_url(url)
+
+        if not title or not url or len(content)<100:
+            continue
+
+        title_lower = title.lower()
+        title_clean = title_lower.translate(translator)
+
+        if title_clean in seen_titles or normalized_url in seen_urls:
+            continue
+        else:
+            seen_titles.add(title_clean)
+            seen_urls.add(normalized_url)
+            result["title"] = title
+            result["content"] = content
+            result["url"] = url
+
+            unique_search.append(result)
+
+    return sorted(
+        unique_search,
+        key=lambda r: (
+            DOMAIN_SCORES.get(r["domain"], 0),
+            len(r["content"])
+        ),
+        reverse=True
+    )
+
 def project_recommendation_agent(context):
     # --- Three Step Pipeline ---
     # Plan possible search queries for ideas
     project_context = build_context("project_planning", context)
-    queries = call_gemini(project_context, PLANNING_PROMPT, PLANNING_SCHEMA)
+    queries = timed_step("Planning queries", call_gemini,project_context, PLANNING_PROMPT, PLANNING_SCHEMA, temp=TEMPERATURES['planning'])
+
+    # To make caching queries a little better
+    lowercase_queries = [query.lower() for query in queries]
+    unique_queries = list(dict.fromkeys(lowercase_queries))
 
     # Search the internet for relevant projects and resources
-    raw_search =  search_web(queries)
+    raw_search =  timed_step("Tavily Search",search_web,unique_queries)
+
+    # Filter out duplicate results
+    filtered_search = filter_search(raw_search)
 
     # Extract project information from search results
-    choose_context = build_context("project_choose", context, raw_search)
-    projects = call_gemini(choose_context, PROJECT_SELECTION_PROMPT,PROJECT_SELECTION_SCHEMA)
+    MAX_CONTEXT_RESULTS = 15
+    choose_context = build_context("project_choose", context, filtered_search[:MAX_CONTEXT_RESULTS])
+    projects = timed_step("Project Selection",call_gemini,choose_context, PROJECT_SELECTION_PROMPT,PROJECT_SELECTION_SCHEMA, temp=TEMPERATURES['selection'])
+
+    print(f"Queries Generated : {len(queries)}")
+    print(f"Raw Results       : {len(raw_search)}")
+    print(f"Filtered Results  : {len(filtered_search)}")
+    print(f"Projects Returned : {len(projects)}")
 
     return projects

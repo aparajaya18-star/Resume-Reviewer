@@ -4,19 +4,32 @@ def build_context(agent, context, info = ""):
             return {
                 "resume_text": context["input"]["resume_text"],
                 "candidate": context["parsed"]["candidate_profile"],
-                "metadata": context["input"]["metadata"]
+                "education": context["parsed"]["education"],
+                "work_experience": context["parsed"]["work_experience"],
+                "projects": context["parsed"]["identified_projects"],
+                "skills": context["parsed"]["identified_skills"],
+                "achievements": context["parsed"]["major_achievements"],
+                "certifications": context["parsed"]["certifications"],
+                "links": context["parsed"]["links"]
             }
         case "skill":
             return {
                 "candidate": context["parsed"]["candidate_profile"],
-                "resume_text": context["input"]["resume_text"],
+                "education": context["parsed"]["education"],
+                "work_experience": context["parsed"]["work_experience"],
+                "projects": context["parsed"]["identified_projects"],
+                "certifications": context["parsed"]["certifications"],
+                "current_skills": context["parsed"]["identified_skills"],
                 "analysis": context["analysis"]
             }
         case "ats":
             return {
                 "candidate": context["parsed"]["candidate_profile"],
-                "resume_analysis": context["analysis"],
-                "skills": context["skills"],
+                "experience_level": context["analysis"]["experience_level"],
+                "skills": context["parsed"]["identified_skills"],
+                "missing_sections": context['analysis']['missing_sections'],
+                "formatting_issues": context['analysis']['formatting_issues'],
+                "links": context["parsed"]["links"],
                 "metadata": context["input"]["metadata"],
                 "retrieved_context": info
             }
@@ -24,16 +37,21 @@ def build_context(agent, context, info = ""):
             return {
                 "candidate": context["parsed"]["candidate_profile"],
                 "experience_level": context["analysis"]["experience_level"],
-                "current_skills": context["skills"]["current_skills"],
-                "target_skills": context["skills"]["recommended_future_skills"],
-                "existing_projects": context["parsed"]["identified_projects"]
+                "education": context["parsed"]["education"],
+                "work_experience": context["parsed"]["work_experience"],
+                "current_skills": context["parsed"]["identified_skills"],
+                "target_skills": context["skills"]["recommended_skills"],
+                "existing_projects": context["parsed"]["identified_projects"],
+                "certifications": context["parsed"]["certifications"]
             }
         case "project_choose":
             return {
                 "candidate": context["parsed"]["candidate_profile"],
                 "experience_level": context["analysis"]["experience_level"],
-                "current_skills": context["skills"]["current_skills"],
-                "target_skills": context["skills"]["recommended_future_skills"],
+                "education": context["parsed"]["education"],
+                "work_experience": context["parsed"]["work_experience"],
+                "current_skills": context["parsed"]["identified_skills"],
+                "target_skills": context["skills"]["recommended_skills"],
                 "existing_projects": context["parsed"]["identified_projects"],
                 "search_results": info
             }
@@ -50,8 +68,12 @@ Missing Sections:
 Formatting Issues:
 {context['analysis']['formatting_issues']}
 
-File Metadata:
-{context["input"]["metadata"]}
+Links:
+Github: {context['parsed']['links']['github']}
+LinkedIn: {context['parsed']['links']['linkedin']}
+Potfolio: {context['parsed']['links']['portfolio']}
+Others:
+{context['parsed']['links']['other']}
 
 How can this resume be improved for ATS parsing?
 """

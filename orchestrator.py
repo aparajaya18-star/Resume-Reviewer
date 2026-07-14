@@ -1,8 +1,10 @@
 from utils.builder import build_context
+from utils.timer import timed_step
 from agents.information_extraction import extract_information
 from agents.resume_analysis import resume_analysis_agent
 from agents.skill_gap import skill_gap_agent
 from agents.ats_agent import ats_rag_agent
+from concurrent.futures import ThreadPoolExecutor
 
 def run_pipeline(text, file_metadata, progress=None):
     # Create cumulative state to pass on inforamtion from agent to agent
@@ -21,28 +23,32 @@ def run_pipeline(text, file_metadata, progress=None):
     # AGENT 1
     if progress:
         progress("Extracting resume information...")
-    context["parsed"] = extract_information(text)
+    context["parsed"] = timed_step("Resume Parser", extract_information, text)
 
     # AGENT 2
     if progress:
         progress("Analyzing resume...")
-    context["analysis"] = resume_analysis_agent(
+    context["analysis"] = timed_step("Resume Analysis",resume_analysis_agent,
         build_context("analysis", context)
         )
 
-    # AGENT 3
-    if progress:
-        progress("Finding skill gaps...")
-    context["skills"]  = skill_gap_agent(
-        build_context("skill", context)
-    )
-
-    # AGENT 4
-    if progress:
-        progress("Checking ATS compatibility...")
-    context["ats"] = ats_rag_agent(context)
-
-    # AGENT 5
+    # AGENT 3+4
+    with ThreadPoolExecutor(max_workers=2) as executor:
     
+        if progress:
+            progress("Analyzing skills and ATS compatibility...")
+            
+        future_skill = executor.submit(
+            timed_step,
+            "Skill Gap",skill_gap_agent,
+            build_context("skill", context)
+        )
 
+        future_ats = executor.submit(
+            timed_step,
+            "ATS", ats_rag_agent, context)
+
+        context["skills"] = future_skill.result()
+        context["ats"] = future_ats.result()
+    
     return context

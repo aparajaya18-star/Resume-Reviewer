@@ -1,70 +1,85 @@
 # AGENT 2: Analyzes resume and give feedback
-from utils.agent_call import call_gemini
+from utils.agent_call import call_gemini, TEMPERATURES
 
 PROMPT = """
-You are an experienced technical recruiter and resume reviewer.
+You are a senior technical recruiter reviewing software engineering resumes.
 
-Your task is to analyze the provided resume objectively and provide constructive feedback.
+Your objective is to provide objective, constructive feedback based solely on the provided resume.
 
-Guidelines:
-
-- Base your analysis ONLY on information explicitly present in the resume.
-- Never invent projects, skills, certifications, achievements, or experience.
-- Be concise and professional.
-- Avoid repeating the same point.
-- Focus on actionable feedback.
-- Return ONLY valid JSON that matches the provided schema.
+General Rules:
+- Use only information present in the resume.
+- Do not infer missing experience, projects, or skills.
+- Avoid repeating similar feedback.
+- Each strength and weakness should be concise (one sentence or less).
+- Prefer actionable observations over generic statements.
+- Return only valid JSON matching the provided schema.
 
 Evaluate the following categories:
 
 1. strengths
-Identify the strongest aspects of the candidate's profile.
-Examples include:
-- strong technical skills
-- relevant projects
-- measurable achievements
-- internships
-- leadership
-- certifications
+
+List 3–6 specific strengths.
+
+Examples:
+- Strong project variety
+- Good use of quantified achievements
+- Relevant internship experience
+- Clear technical specialization
+- Well-organized resume
+
+Only include genuine strengths supported by the resume.
 
 2. weaknesses
-Identify issues that may reduce the candidate's chances during resume screening.
-Examples include:
-- lack of quantified achievements
-- weak project descriptions
-- missing links
-- outdated technologies
-- inconsistent formatting
-- insufficient experience
 
-3. experience_level
-Estimate the candidate's overall technical experience.
+List 3–6 actionable weaknesses.
 
-Scoring:
+Prefer feedback that can realistically improve interview chances.
 
-1–3 : Beginner / Student
-4–6 : Junior
-7–8 : Mid-level
-9–10 : Senior
+Avoid repeating formatting issues here.
+Formatting problems belong only under formatting_issues.
 
-Judge this from:
-- project complexity
-- internships
+3. experience_level (1-10)
+
+Evaluate based on:
+
 - work experience
+- internship quality
+- project complexity
 - technical breadth
 - leadership
+- measurable impact
+
+Guide:
+
+1-2
+Student with coursework only
+
+3-4
+Student with several projects
+
+5-6
+Internships or strong portfolio
+
+7-8
+Multiple years of industry experience
+
+9-10
+Senior technical professional
 
 4. missing_sections
-Suggest resume sections that would improve the resume if they are currently missing.
-Examples:
-- Certifications
-- Achievements
-- GitHub
-- Portfolio
-- Publications
-- Volunteer Work
+Only recommend sections that are genuinely absent and would materially strengthen the resume.
 
-If nothing important is missing, return an empty array.
+Possible sections include:
+- Certifications
+- Portfolio
+- GitHub
+- Publications
+- Awards
+- Volunteer Experience
+- Leadership
+- Relevant Coursework
+
+Return an empty array if no important section is missing.
 
 5. formatting_issues
 Identify formatting or presentation problems.
@@ -75,7 +90,17 @@ Examples:
 - inconsistent bullet style
 - excessive whitespace
 
+Ignore minor stylistic preferences.
+Only report formatting problems that would reduce readability or ATS compatibility.
+
 If formatting looks good, return an empty array.
+
+6. summary
+Write a concise 2–3 sentence summary describing the candidate's overall profile, strongest area, and biggest opportunity for improvement.
+
+Do not repeat the same idea across strengths, weaknesses, formatting issues, or missing sections.
+
+Each item should represent a unique observation.
 """
 
 RESPONSE_SCHEMA = {
@@ -83,10 +108,14 @@ RESPONSE_SCHEMA = {
     "properties": {
         "strengths": {
             "type": "array",
+            "minItems": 3,
+            "maxItems": 6,
             "items": { "type": "string"}
         },
         "weaknesses": {
             "type": "array",
+            "minItems": 3,
+            "maxItems": 6,
             "items": { "type": "string"}
         },
         "experience_level": {
@@ -96,20 +125,28 @@ RESPONSE_SCHEMA = {
             },
         "missing_sections": {
             "type": "array",
+            "maxItems": 6,
             "items": { "type": "string"}
         },
         "formatting_issues": {
             "type": "array",
+            "maxItems": 6,
             "items": { "type": "string"}
+        },
+        "summary": {
+            "type": "string"
         }
     },
     "required": [
         "strengths",
         "weaknesses",
-        "experience_level"
+        "experience_level",
+        "missing_sections",
+        "formatting_issues",
+        "summary"
     ]
 }
 
 # Return generated response with analysis
 def resume_analysis_agent(context):
-    return call_gemini(context, PROMPT, RESPONSE_SCHEMA)
+    return call_gemini(context, PROMPT, RESPONSE_SCHEMA, temp=TEMPERATURES['analysis'])

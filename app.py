@@ -2,6 +2,7 @@ import streamlit as st
 from google.genai.errors import ClientError
 
 from utils.pdf import load_pdf
+from utils.timer import timed_step
 from orchestrator import run_pipeline
 from agents.project_recommendation import project_recommendation_agent
 
@@ -10,7 +11,7 @@ from agents.project_recommendation import project_recommendation_agent
 # Configure Streamlit app
 st.set_page_config(
     page_title="Resume Reviewer",
-    layout="centered"
+    layout="wide"
 )
 #st.caption("") -> add later
 
@@ -46,7 +47,7 @@ if uploaded_file and submit_button:
         status.update(label=message, state=state)
 
     # Load text from File
-    text, num_pages  = load_pdf(uploaded_file)
+    text, num_pages = timed_step("Load PDF", load_pdf, uploaded_file)
     if not text.strip():
         st.error("No text could be extracted from this PDF.")
         st.stop()
@@ -61,7 +62,7 @@ if uploaded_file and submit_button:
 
     # Call orchestrator
     st.session_state.pop("context", None)
-    st.session_state.context = run_pipeline(text, file_metadata, progress=update_progress)
+    st.session_state.context = timed_step("Complete Pipeline", run_pipeline,text, file_metadata, progress=update_progress)
 
     update_progress("Analysis Complete!", "complete")
 
@@ -100,8 +101,10 @@ if "context" in st.session_state:
                         )
 
         # ---- Resume Analysis -----
-        with st.container(border=True):
-            st.header("Overview")
+        with st.expander("Overview",expanded=True):
+            st.subheader("Summary")
+            st.write(context["analysis"]["summary"])
+
             col1, col2 = st.columns(2)
             with col1:
                 st.success("Strengths")
@@ -124,31 +127,47 @@ if "context" in st.session_state:
                     st.write(f"• {i}")
 
         # ---- Skill Gap -----
-        with st.container(border=True):
-            st.header("Skills")
-
+        with st.expander("Skills",expanded=True):
             col1, col2 = st.columns(2)
             with col1:
                 st.success("Current Skills")
-                for s in context["skills"]["current_skills"]:
+                for s in context["parsed"]["identified_skills"]:
                     st.write(f"• {s}")
 
             with col2:
-                st.warning("Missing Skills") # Maybe replace with "hidden talents" ie skills you have based on projects but not added since this overlaps with suggestions maybe with st.caption("+ Add to Resume")
-                for w in context["skills"]["missing_resume_skills"]:
+                st.warning("Resume Skill Gaps") 
+                st.caption("Add to Resume +")
+                for w in context["skills"]["resume_skill_gaps"]:
                     st.write(f"• {w}")
 
             st.subheader("Suggested Learning")
             st.caption("How to upskill ⬆")
-            for suggestion in context["skills"]["recommended_future_skills"]:
-                st.markdown(f"Skill: **{suggestion['skill']}**")
-                st.write(f"Reason: {suggestion['reason']}")
-                st.write(f"Priority: ",suggestion['priority'])
+
+            recommendations = context["skills"]["recommended_skills"]
+            for i in range(0, len(recommendations), 2):
+                col1, col2 = st.columns(2)
+
+                with col1:
+                    suggestion = recommendations[i]
+                    with st.container(border=True):
+                        st.markdown(f"### {suggestion['skill']}")
+                        st.caption(
+                            f"{suggestion['category']} • {suggestion['priority']} Priority"
+                        )
+                        st.write(suggestion["reason"])
+
+                if i + 1 < len(recommendations):
+                    with col2:
+                        suggestion = recommendations[i + 1]
+                        with st.container(border=True):
+                            st.markdown(f"### {suggestion['skill']}")
+                            st.caption(
+                                f"{suggestion['category']} • {suggestion['priority']} Priority"
+                            )
+                            st.write(suggestion["reason"])
 
         # ---- ATS Score + Analysis (RAG Agent) ----
-        with st.container(border=True):
-            st.header("ATS Analysis")
-
+        with st.expander("ATS Analysis",expanded=True):
             st.metric("Score:", f"{context['ats']['ats_score']} / 10")
             st.write(context["ats"]["analysis"])
 
@@ -175,7 +194,7 @@ if "context" in st.session_state:
         if not context.get("projects"):
             with st.spinner("Searching for suitable projects..."):
                 try:
-                    context["projects"] = project_recommendation_agent(context)
+                    context["projects"] = timed_step("Complete Project rec",project_recommendation_agent,context)
                 except ClientError as e:
                     context["projects"] = {
                         "error": str(e)
@@ -195,26 +214,25 @@ if "context" in st.session_state:
                         st.subheader(p["title"])
                         col1, col2, col3 = st.columns(3)
                         with col1:
-                            st.metric("Difficulty", p["difficulty"])
+                            st.metric(label="Difficulty", value=p["difficulty"], border=True)
                         with col2:
-                            st.metric("Time", p["time_estimate"])
+                            st.metric(label="Time", value=p["time_estimate"], border=True)
                         with col3:
-                            st.metric("Portfolio Impact", f"{p['portfolio_impact']} / 10")
+                            st.metric(label="Portfolio Impact", value=f"{p['portfolio_impact']} / 10", border=True)
 
                         st.write(p["overview"])
 
-                        st.markdown("**Why this project?**")
+                        st.caption("Why this project?")
                         st.write(p["why_now"])
 
-                        st.markdown("**Skills**")
+                        st.caption("Skills")
                         for skill in p["skills"]:
                             st.write(f"• {skill}")
 
-                        with st.expander("Resources"):
+                        with st.expander("Resources", expanded=True):
                             for resource in p["resources"]:
                                 st.markdown(f"- [{resource['title']}]({resource['url']})")
 
-    # ---- Resume Improvement (RAG Agent) ----
 
     # ---- Button with Resume rewrite Agent ----
 
