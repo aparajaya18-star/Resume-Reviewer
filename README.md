@@ -8,6 +8,24 @@ The application analyzes a resume PDF, evaluates its strengths and weaknesses, i
 
 🌐 **Streamlit App:** https://resume-reviewer-18.streamlit.app/
 
+🎥 Demo Video: https://drive.google.com/drive/folders/1PEv2iaHpKeMmf3-gfLnoxBcoDRYGt8AR?usp=drive_link
+
+## Screenshots
+
+### Resume Analysis
+
+![Home](images/home.png)
+
+![Analysis](images/analysis.png)
+
+### Resume Rewrite
+
+![Rewrite](images/rewrite.png)
+
+### Project Recommendations
+
+![Projects](images/projects.png)
+
 ---
 
 ## Features
@@ -55,6 +73,16 @@ Uses a multi-step agent workflow to:
 - Filter duplicate and low-quality resources
 - Recommend portfolio projects tailored to the candidate
 
+### Resume Rewrite
+
+Generates an improved, ATS-friendly version of the uploaded resume while preserving all factual information.
+
+- Improves wording and readability
+- Standardizes formatting
+- Enhances ATS compatibility
+- Provides a downloadable rewritten resume
+- Explains every suggested change
+
 ---
 
 ## Architecture Overview
@@ -63,50 +91,55 @@ Uses a multi-step agent workflow to:
                 Resume PDF
                      │
                      ▼
-             Information Extraction
+     Information Extraction Agent
                      │
                      ▼
-              Resume Analysis
-                     │
-        ┌────────────┴────────────┐
-        ▼                         ▼
- Skill Gap Agent          ATS RAG Agent
-        └────────────┬────────────┘
-                     ▼
-             Project Planner
-                     ▼
-             Web Search (Tavily)
-                     ▼
-           Project Selection Agent
-                     ▼
-            Final Recommendations
+       Resume Analysis Agent
+          │          │
+          │          ▼
+          │    ATS RAG Agent
+          │      │       │
+          ▼      │       ▼
+ Skill Gap Agent │ Resume Rewrite
+          │      │
+          └──────┴───────────┐
+                              ▼
+              Project Recommendation
+                     Workflow
+                        │
+                Tavily Web Search
+                        │
+                        ▼
+             Project Selection Agent
 ```
 
 A more detailed explanation is available in **ARCHITECTURE.md**.
 
 ---
 
-## Technologies Used
+## Tech Stack
 
-### AI
-- Google Gemini
-- Structured JSON Output
-- Prompt Engineering
-
-### RAG
-- ChromaDB
-- Gemini Embeddings
-- Semantic Retrieval
-
-### Backend
-- Python
+**Frontend**
 - Streamlit
 
-### Search
+**Backend**
+- Python
+
+**LLM**
+- Google Gemini 3.1 Flash Lite
+
+**RAG**
+- ChromaDB
+- Gemini Embeddings
+
+**Search**
 - Tavily Search API
 
-### Concurrency
+**Concurrency**
 - ThreadPoolExecutor
+
+**Environment**
+- python-dotenv
 
 ---
 
@@ -115,8 +148,8 @@ A more detailed explanation is available in **ARCHITECTURE.md**.
 Clone the repository
 
 ```bash
-git clone <repository-url>
-cd resume-analyzer
+git clone https://github.com/aparajaya18-star/Resume-Reviewer
+cd Resume-Reviewer
 ```
 
 Install dependencies
@@ -143,32 +176,30 @@ streamlit run app.py
 ## Project Structure
 
 ```
-resume-analyzer/
+resume-reviewer/
 │
 ├── agents/
 │   ├── information_extraction.py
 │   ├── resume_analysis.py
 │   ├── skill_gap.py
-│   ├── ats_agent.py
-│   └── project_recommendation.py
+│   ├── ats.py
+│   ├── project_recommendation.py
+│   └── resume_rewrite.py
 │
 ├── rag/
-│   ├── database.py
-│   └── ...
-│
 ├── utils/
-│
-├── orchestrator.py
+├── data/
 ├── app.py
-├── README.md
-└── ARCHITECTURE.md
+├── orchestrator.py
+├── ARCHITECTURE.md
+├── requirements.txt
+└── README.md
 ```
 
 ---
 
 ## Future Improvements
 
-- Resume rewriting agent
 - Job matching
 - Resume tailoring for job descriptions
 - Interview preparation agent

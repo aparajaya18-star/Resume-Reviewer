@@ -29,13 +29,16 @@ Information Extraction Agent
      ▼
 Resume Analysis Agent
      │
- ┌───┴────────────┐
- ▼                ▼
-Skill Agent    ATS Agent (RAG)
- └────┬──────────┘
-      ▼
-Project Recommendation Agent
-      ▼
+ ┌────┴───────────────┐
+ ▼                    ▼
+Skill Gap Agent   ATS Agent (RAG)
+ └──────┬─────────────┘
+        │
+        ├──────────────► Resume Rewrite Agent
+        │
+        ▼
+Project Recommendation Workflow
+        ▼
 Final Results
 ```
 
@@ -52,7 +55,8 @@ context = {
     "analysis": {},
     "skills": {},
     "ats": {},
-    "projects": {}
+    "projects": {},
+    "rewrite": {}
 }
 ```
 
@@ -182,7 +186,30 @@ Benefits:
 
 ---
 
-# Project Recommendation Workflow
+# Agent 5 — Resume Rewrite
+
+The Resume Rewrite agent generates an improved version of the uploaded resume while preserving all factual information.
+
+It combines:
+
+- original resume text
+- extracted resume information
+- resume analysis
+- ATS analysis
+
+to produce:
+
+- ATS-friendly formatting
+- improved wording
+- standardized section structure
+- categorized skills
+- explanation of every modification made
+
+The agent is instructed to never invent experience, technologies, projects, achievements, or dates, ensuring that all improvements remain faithful to the original resume.
+
+---
+
+# Agent 6 — Project Recommendation
 
 Project recommendation uses a three-stage agent pipeline.
 
@@ -237,7 +264,7 @@ It selects projects that maximize:
 
 # Parallel Execution
 
-After Resume Analysis completes, two independent agents execute concurrently.
+After the Resume Analysis agent completes, the Skill Gap Agent and ATS Agent execute concurrently using ThreadPoolExecutor. The Resume Rewrite agent executes afterwards because it depends on the ATS analysis produced by the RAG pipeline.
 
 ```
 Resume Analysis
@@ -304,13 +331,13 @@ Each agent can be developed, tested, and replaced independently without affectin
 
 Potential extensions include:
 
-- Resume rewriting agent
 - Job description matching
 - Resume tailoring
 - Cover letter generation
 - Interview preparation
 - Multiple RAG knowledge bases
 - Local embedding models
+- PDF export for rewritten resumes
 - Support for additional resume formats
 
 ---
@@ -320,7 +347,8 @@ Potential extensions include:
 The application is deployed using Streamlit Community Cloud.
 
 Live Demo:
-https://resume-reviewer-18.streamlit.app/
+
+**Streamlit App:** <https://resume-reviewer-18.streamlit.app/>
 
 ---
 
