@@ -30,6 +30,7 @@ TEMPERATURES = {
     "ats": 0.15,
     "planning": 0.6,
     "selection": 0.25,
+    "rewrite":0.35
 }
 
 # ---- Call Gemini api ----

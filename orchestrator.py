@@ -17,7 +17,8 @@ def run_pipeline(text, file_metadata, progress=None):
             "analysis": {},
             "skills": {},
             "ats": {},
-            "projects": {}
+            "projects": {},
+            "rewrite": {}
         }
     
     # AGENT 1

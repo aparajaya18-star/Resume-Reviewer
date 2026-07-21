@@ -55,6 +55,24 @@ def build_context(agent, context, info = ""):
                 "existing_projects": context["parsed"]["identified_projects"],
                 "search_results": info
             }
+        case "rewrite":
+            return {
+                "original_resume": context["input"]["resume_text"],
+                "candidate": context["parsed"]["candidate_profile"],
+                "education": context["parsed"]["education"],
+                "work_experience": context["parsed"]["work_experience"],
+                "projects": context["parsed"]["identified_projects"],
+                "skills": context["parsed"]["identified_skills"],
+                "achievements": context["parsed"]["major_achievements"],
+                "certifications": context["parsed"]["certifications"],
+                "links": context["parsed"]["links"],
+                "strengths": context["analysis"]["strengths"],
+                "weaknesses": context["analysis"]["weaknesses"],
+                "missing_sections": context['analysis']['missing_sections'],
+                "formatting_issues": context['analysis']['formatting_issues'],
+                "ats_issues": context["ats"]["issues"],
+                "ats_improvements": context["ats"]["improvements"]
+            }
         
 def build_query(agent, context):
     match agent:
