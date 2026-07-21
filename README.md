@@ -12,9 +12,11 @@ The application analyzes a resume PDF, evaluates its strengths and weaknesses, i
 
 ## Screenshots
 
-### Resume Analysis
+### Home
 
 ![Home](images/home.png)
+
+### Resume Analysis
 
 ![Analysis](images/analysis.png)
 
